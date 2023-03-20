@@ -1,0 +1,81 @@
+---
+title: "Mapa d'observacions de coral·lígen a la costa brava"
+output: 
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+---
+
+<center> 
+
+# Mapa d'observacions 
+
+
+
+```{r ,echo=FALSE, warning=FALSE, message=FALSE}
+
+# load packages
+library(dplyr)
+library(ggplot2)
+library(rjson)
+library(jsonlite)
+library(leaflet)
+library(RCurl)
+library(tidyverse)
+
+# Set working directory
+
+path <- dirname(rstudioapi::getActiveDocumentContext()$path)
+
+# Read the data
+
+data <- read.csv2(paste0(path, "/CORFUN_LEK_Respostes.csv"))
+
+# Correct incorrect species names 
+
+data <- data %>% 
+  mutate(Especie= str_replace(Especie, "Paramunicea", "Paramuricea")) %>% 
+  drop_na(Latitud)
+
+
+data %>% 
+  leaflet() %>%
+  addTiles() %>% 
+  # addProviderTiles("Stamen.Terrain") %>%
+  addMarkers(lng = ~Longitud, lat = ~Latitud,
+             clusterOptions = markerClusterOptions(),
+             popup = ~as.character(paste0("<br/>Centre: ", Nom_centre,
+                             "<br/>Espècie: ",
+                             Especie,
+                             "<br/>Abundància: ",
+                             Abundancia)))
+```
+
+<br> 
+
+
+# Rànquing observacions
+
+
+```{r ,echo=FALSE, warning=FALSE, message=FALSE}
+
+# load packages
+
+library(gtExtras)
+
+# Write the table
+
+data %>% 
+  group_by(Nom_centre) %>% 
+  summarise(n=n()) %>% 
+  mutate(Proporció=n/sum(n)*100,
+         Barra=n/sum(n)*100) %>% 
+  rename(Centre=Nom_centre,
+         Nombre_observacions=n) %>% 
+  gt() %>%
+ gt_plt_bar_pct(column = Barra, scaled = FALSE) %>%
+  cols_align("center", contains("scale"))
+
+```
+
+</center>
